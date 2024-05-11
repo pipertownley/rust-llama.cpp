@@ -2,3 +2,4 @@
 *.bin
 /example_test
 /.idea
+/.vscode
