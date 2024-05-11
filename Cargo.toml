@@ -41,3 +41,7 @@ cuda = []
 metal = []
 openblas = []
 blis = []
+
+[[example]]
+name = "metal"
+path = "examples/metal/src/main.rs"
