@@ -61,11 +61,14 @@ fn main() {
 
 ```
 
-## Examples 
+## Examples
 
 The examples contain dockerfiles to run them
-
 see [examples](https://github.com/mdrokz/rust-llama.cpp/blob/master/examples/README.md)
+
+Examples may be run via cargo targets
+`cargo run --examples cuda`
+
 
 ## TODO
 
@@ -79,4 +82,3 @@ see [examples](https://github.com/mdrokz/rust-llama.cpp/blob/master/examples/REA
 ## LICENSE
 
 MIT
- 
