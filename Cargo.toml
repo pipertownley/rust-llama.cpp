@@ -24,6 +24,19 @@ edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[[example]]
+name = "basic"
+path = "examples/basic/src/main.rs"
+
+[[example]]
+name = "cuda"
+path = "examples/cuda/src/main.rs"
+
+[[example]]
+name = "opencl"
+path = "examples/opencl/src/main.rs"
+
+
 [dependencies]
 lazy_static = "1.4.0"
 
