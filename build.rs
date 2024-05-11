@@ -1,9 +1,10 @@
+use cc::Build;
 use std::env;
-use std::env::VarError;
 use std::path::Path;
 use std::path::PathBuf;
 
-use cc::Build;
+#[cfg(target_os = "windows")]
+use std::env::VarError;
 
 fn compile_bindings(out_path: &Path) {
     let bindings = bindgen::Builder::default()
@@ -72,7 +73,9 @@ fn find_cuda() -> PathBuf {
     let program_files = match env::var("PROGRAMFILES") {
         Ok(program_files) => PathBuf::from(program_files),
         Err(VarError::NotPresent) => PathBuf::from("C:\\Program Files"),
-        Err(VarError::NotUnicode(_)) => panic!("PROGRAMFILES environment variable is not valid unicode"),
+        Err(VarError::NotUnicode(_)) => {
+            panic!("PROGRAMFILES environment variable is not valid unicode")
+        }
     };
     if !program_files.exists() {
         panic!("Program Files not found");
@@ -82,7 +85,9 @@ fn find_cuda() -> PathBuf {
     if !cuda_path.exists() {
         panic!("CUDA not found");
     }
-    let cuda_dirs = cuda_path.read_dir().expect("Could not read CUDA directory")
+    let cuda_dirs = cuda_path
+        .read_dir()
+        .expect("Could not read CUDA directory")
         .filter_map(|p| p.ok())
         .filter(|p| p.path().is_dir())
         .collect::<Vec<_>>();
@@ -90,7 +95,12 @@ fn find_cuda() -> PathBuf {
         0 => panic!("CUDA not found"),
         1 => cuda_dirs.first().unwrap().path(),
         // Take the most recent one
-        _ => cuda_dirs.into_iter().fold(PathBuf::new(), |acc, p| if acc < p.path() { acc } else { p.path() })
+        _ => {
+            cuda_dirs.into_iter().fold(
+                PathBuf::new(),
+                |acc, p| if acc < p.path() { acc } else { p.path() },
+            )
+        }
     }
 }
 
@@ -107,19 +117,23 @@ fn compile_cuda(cxx_flags: &str) {
     }
 
     #[cfg(target_os = "windows")]
-    if let Ok(cuda_path) = std::env::var("CUDA_PATH").or_else(|_| find_cuda().to_str().map(String::from).ok_or(VarError::NotPresent)) {
-        println!(
-            "cargo:rustc-link-search=native={}/lib/x64",
-            cuda_path
-        );
+    if let Ok(cuda_path) = std::env::var("CUDA_PATH").or_else(|_| {
+        find_cuda()
+            .to_str()
+            .map(String::from)
+            .ok_or(VarError::NotPresent)
+    }) {
+        println!("cargo:rustc-link-search=native={}/lib/x64", cuda_path);
     }
-    
+
     // culibos, pthread dl rt are only needed for linux
     #[cfg(target_os = "linux")]
     let libs = "cuda cublas culibos cudart cublasLt pthread dl rt";
+
     #[cfg(target_os = "windows")]
     let libs = "cuda cublas cudart cublasLt";
 
+    #[cfg(any(target_os = "windows", target_os = "linux"))]
     for lib in libs.split_whitespace() {
         println!("cargo:rustc-link-lib={}", lib);
     }
@@ -244,7 +258,11 @@ fn compile_llama(cxx: &mut Build, cxx_flags: &str, out_path: &Path, ggml_type: &
     }
 
     if let Some(build_info) = generate_build_info(out_path) {
-        cxx.file(build_info.to_str().expect("Failed to convert path to string"));
+        cxx.file(
+            build_info
+                .to_str()
+                .expect("Failed to convert path to string"),
+        );
     }
 
     cxx.shared_flag(true)
@@ -279,7 +297,9 @@ fn main() {
 
     let mut ggml_type = String::new();
 
-    cxx.include("./llama.cpp/common").include("./llama.cpp").include("./include_shims");
+    cxx.include("./llama.cpp/common")
+        .include("./llama.cpp")
+        .include("./include_shims");
 
     if cfg!(feature = "opencl") {
         compile_opencl(&mut cx, &mut cxx);
@@ -296,7 +316,7 @@ fn main() {
     if cfg!(feature = "cuda") {
         cx.define("GGML_USE_CUBLAS", None);
         cxx.define("GGML_USE_CUBLAS", None);
-        
+
         compile_ggml(&mut cx, &cx_flags);
 
         compile_cuda(&cxx_flags);
